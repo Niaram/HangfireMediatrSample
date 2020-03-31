@@ -1,0 +1,31 @@
+﻿using Hangfire;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace MediatR
+{
+    public static class MediatRExtensions
+    {
+        public static void Enqueue(this IMediator mediator, IRequest request)
+        {
+            BackgroundJob.Enqueue<HangfireMediator>(m => m.SendCommand(request));
+        }
+    }
+
+    public class HangfireMediator
+    {
+        private readonly IMediator _mediator;
+
+        public HangfireMediator(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        public void SendCommand(IRequest request)
+        {
+            _mediator.Send(request);
+        }
+    }
+}
