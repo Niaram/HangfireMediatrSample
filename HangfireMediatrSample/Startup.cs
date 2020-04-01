@@ -31,11 +31,7 @@ namespace HangfireMediatrSample
             services.AddControllers();
 
             // Add MediatR
-            services.AddMediatR(config => config.AsTransient(),
-                                Assembly.GetExecutingAssembly());
-
-            var sp = services.BuildServiceProvider(); // => How to remove this?
-            var mediatr = sp.GetService<IMediator>();
+            services.AddMediatR(Assembly.GetExecutingAssembly());
 
             // Add Hangfire services.
             services.AddHangfire(configuration => configuration
@@ -51,16 +47,19 @@ namespace HangfireMediatrSample
                                         UseRecommendedIsolationLevel = true,
                                         UsePageLocksOnDequeue = true,
                                         DisableGlobalLocks = true
-                                    })
-                .UseMediatR(mediatr));
+                                    }));
 
             // Add the processing server as IHostedService
             services.AddHangfireServer();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IBackgroundJobClient backgroundJobs, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app,
+                            IBackgroundJobClient backgroundJobs,
+                            IWebHostEnvironment env,
+                            IServiceProvider serviceProvider)
         {
+            app.UseHangfireMediatR(serviceProvider);
 
             if (env.IsDevelopment())
             {
@@ -68,7 +67,6 @@ namespace HangfireMediatrSample
             }
 
             app.UseHangfireDashboard();
-            backgroundJobs.Enqueue(() => Console.WriteLine("Hello world from Hangfire!"));
 
             app.UseRouting();
 

@@ -5,36 +5,39 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Builder;
 
 namespace Hangfire
 {
     public static class HangfireExtensions
     {
-        public static IGlobalConfiguration UseMediatR(this IGlobalConfiguration config, IMediator mediator)
+        public static IApplicationBuilder UseHangfireMediatR(this IApplicationBuilder appBuilder, IServiceProvider serviceProvider)
         {
-            config.UseActivator(new MediatRJobActivator(mediator));
+            GlobalConfiguration.Configuration
+                                    .UseSerializerSettings(new JsonSerializerSettings
+                                                            {
+                                                                TypeNameHandling = TypeNameHandling.Objects,
+                                                            })
+                                    .UseActivator(new MediatRJobActivator(serviceProvider));
 
-            GlobalConfiguration.Configuration.UseSerializerSettings(new JsonSerializerSettings
-            {
-                TypeNameHandling = TypeNameHandling.Objects,
-            });
-
-            return config;
+            return appBuilder;
         }
     }
 
     public class MediatRJobActivator : JobActivator
     {
-        private readonly IMediator _mediator;
+        private readonly IServiceProvider serviceProvider;
 
-        public MediatRJobActivator(IMediator mediator)
+        public MediatRJobActivator(IServiceProvider serviceProvider)
         {
-            _mediator = mediator;
+            this.serviceProvider = serviceProvider;
         }
 
         public override object ActivateJob(Type type)
         {
-            return new HangfireMediator(_mediator);
+            IMediator mediator = serviceProvider.GetService<IMediator>();
+            return new HangfireMediator(mediator);
         }
     }
 }
